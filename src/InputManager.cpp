@@ -39,6 +39,7 @@ InputManager::~InputManager(void)
 std::vector<TString> InputManager::GetFileList(int run_number)
 {
     const char *ext = ".root";
+    run_number = run_number;
     TString base_name = Form("analysis%i", run_number);
 
     TSystemDirectory dir(data_dir, data_dir);
@@ -68,3 +69,11 @@ void InputManager::ClearFileList()
 {
     file_list.clear();
 } // end ClearFileList
+
+//////////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////////
+Int_t InputManager::GetRunNumber()
+{
+    return run_number;
+} // end GetRunNubmer

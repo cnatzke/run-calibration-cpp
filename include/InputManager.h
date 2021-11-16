@@ -10,12 +10,14 @@ public:
     ~InputManager(void);
     std::vector<TString> GetFileList(int run_number);
     void ClearFileList();
+    Int_t GetRunNumber();
 
     std::vector<TString> file_list;
     const char * data_dir;
     const char * out_file;
 
 private:
+    int run_number;
 
 };
 

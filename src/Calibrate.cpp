@@ -33,6 +33,7 @@ int main(int argc, char **argv)
         std::cout << std::endl;
 
         const char *data_dir = "/vagrant/data/analysis-trees";
+        const char *cal_file = "/vagrant/analysis/two-photon-calibration/July2020_calibration.cal";
         InputManager *inputs = new InputManager(data_dir);
         for (int i = std::atoi(argv[1]); i <= atoi(argv[2]); i++) {
             // get list of subruns
@@ -40,7 +41,7 @@ int main(int argc, char **argv)
             // check to make sure we found some analysis files
             if (file_list.size() != 0){
                 MakeHistograms *hist_maker = new MakeHistograms(inputs);
-                hist_maker->MakeCalibrationHistograms();
+                hist_maker->MakeCalibrationHistograms(cal_file);
                 delete hist_maker;
             }
             inputs->ClearFileList();
@@ -61,6 +62,7 @@ void InitGRSISort(){
     gEnv->ReadFile(grsi_path.c_str(), kEnvChange);
 
     TParserLibrary::Get()->Load();
+    TGRSIOptions::AnalysisOptions()->SetCorrectCrossTalk(false);
 } // end InitGRSISort
 
 /******************************************************************************

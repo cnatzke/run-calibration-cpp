@@ -8,8 +8,9 @@
 #include <iostream>
 #include "TChain.h"
 #include "TGriffin.h"
-
 #include "MakeHistograms.h"
+#include "LoadingMessenger.h"
+#include "progress_bar.h"
 
 //////////////////////////////////////////////////////////////////////////////////
 // Constructor
@@ -28,7 +29,7 @@ MakeHistograms::~MakeHistograms()
 //////////////////////////////////////////////////////////////////////////////////
 //
 //////////////////////////////////////////////////////////////////////////////////
-void MakeHistograms::MakeCalibrationHistograms()
+void MakeHistograms::MakeCalibrationHistograms(const char* cal_file)
 {
     TChain *analysis = new TChain("AnalysisTree");
     std::vector<TString> run_list = inputs->file_list;
@@ -38,48 +39,42 @@ void MakeHistograms::MakeCalibrationHistograms()
         analysis->AddFile(Form("%s/%s", inputs->data_dir, run_list.at(i).Data()));
     }
 
-    std::cout << "Found %i analysis trees " << analysis->GetNtrees()) << std::endl;
+    std::cout << "Found " << analysis->GetNtrees() << " analysis trees" << std::endl;
     TTree *tree = (TTree *) analysis->GetTree();
 
-    Int_t num_entries = analysis->GetEntries();
     TGriffin * griffin = 0;
     if (analysis->FindBranch("TGriffin")) {
         analysis->SetBranchAddress("TGriffin", &griffin);
-        std::cout << "Creating GRIFFIN Matrices..." << std::endl;
     } else {
-        std::cout << "No TTigress or TGriffin Branch Found Things will go wrong" << std::endl;
+        std::cout << "No TGriffin branch found, exiting..." << std::endl;
+        std::exit(1);
     }
 
-    std::cout << "Entries: " << num_entries << std::endl;
+    // Create histograms
+    char hname[20];
+    for(int i = 0; i < num_crystals; i++) {
+        sprintf(hname,"run%i_%i", inputs->GetRunNumber(), i);
+        histograms[i] = new TH1F(hname, hname, 4000, 0, 4000);
+    }
 
-    /*
-       char hname[20];
-       for(int i = 0; i < num_cores; i++) {
-        sprintf(hname,"hist%i_%i",source_count, i);
-        hist[i] = new TH1F(hname, hname, num_bins, min_bin, max_bin);
-       }
+    //std::cout << "Histograms created." << std::endl;
 
-       cout << "Histograms created." << endl;
-
-       //filling histograms with data from analysis root file
-       for (int i = 0; i < num_entries - 1; i++) {
+    //filling histograms with data from analysis root file
+    Int_t num_entries = analysis->GetEntries();
+    TChannel::ReadCalFile(cal_file);
+    LoadingMessenger load_man;
+    load_man.DisplayLoadingMessage();
+    ProgressBar progress_bar(num_entries, 70, '=', ' ');
+    for (int i = 0; i < num_entries - 1; i++) {
         analysis->GetEntry(i);
-        if(tig) {
-            for (int j = 0; j < tigress->GetMultiplicity(); j++) {
-                TTigressHit *tigress_hit = tigress->GetTigressHit(j);
-                hist[tigress_hit->GetArrayNumber()]->Fill(tigress_hit->GetCharge());
-            }    //for
-        } else {
-            for (int j = 0; j < griffin->GetMultiplicity(); j++) {
-                TGriffinHit *griffin_hit = griffin->GetGriffinHit(j);
-                hist[griffin_hit->GetArrayNumber()-1]->Fill(griffin_hit->GetCharge());
-            }    //for
+        for (int j = 0; j < griffin->GetMultiplicity(); j++) {
+            TGriffinHit *griffin_hit = griffin->GetGriffinHit(j);
+            histograms[griffin_hit->GetArrayNumber()-1]->Fill(griffin_hit->GetCharge());
         }
-        if (i % 10000 == 0) {
-            cout << setiosflags(ios::fixed) << "Entry " << i << " of " << num_entries << ", " << 100 * (i) / num_entries << "% complete" << "\r" << flush;
-        }    //if
-       }    //for
-       cout << setiosflags(ios::fixed) << "Entry " << num_entries << " of " << num_entries << ", 100% complete" << "\r" << flush;
-     */
+
+        if (i % 10000 == 0) progress_bar.display();
+        ++progress_bar;
+    }
+    progress_bar.done();
 
 } // end MakeCalibrationHistograms
