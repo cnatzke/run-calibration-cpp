@@ -36,10 +36,10 @@ InputManager::~InputManager(void)
 //////////////////////////////////////////////////////////////////////////////////
 // Reads in list of files in directory
 //////////////////////////////////////////////////////////////////////////////////
-std::vector<TString> InputManager::GetFileList(int run_number)
+void InputManager::GetFileList(int run_number)
 {
     const char *ext = ".root";
-    run_number = run_number;
+    run_num = run_number;
     TString base_name = Form("analysis%i", run_number);
 
     TSystemDirectory dir(data_dir, data_dir);
@@ -58,8 +58,6 @@ std::vector<TString> InputManager::GetFileList(int run_number)
     }
 
     std::sort(file_list.begin(), file_list.end());
-    return file_list;
-
 } // end GetFileList
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -75,5 +73,13 @@ void InputManager::ClearFileList()
 //////////////////////////////////////////////////////////////////////////////////
 Int_t InputManager::GetRunNumber()
 {
-    return run_number;
+    return run_num;
 } // end GetRunNubmer
+
+//////////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////////
+Int_t InputManager::GetNumberOfSubruns()
+{
+    return (Int_t) file_list.size();
+} // end GetNumberOfSubruns

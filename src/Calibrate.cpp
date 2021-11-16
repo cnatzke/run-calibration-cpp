@@ -11,6 +11,7 @@
 #include "TGRSIUtilities.h"
 #include "TParserLibrary.h"
 #include "TEnv.h"
+#include "TH2.h"
 
 #include "EnergyCalibration.h"
 #include "InputManager.h"
@@ -34,18 +35,28 @@ int main(int argc, char **argv)
 
         const char *data_dir = "/vagrant/data/analysis-trees";
         const char *cal_file = "/vagrant/analysis/two-photon-calibration/July2020_calibration.cal";
+        TFile *out = new TFile("charge_histograms.root", "RECREATE");
         InputManager *inputs = new InputManager(data_dir);
         for (int i = std::atoi(argv[1]); i <= atoi(argv[2]); i++) {
             // get list of subruns
-            std::vector<TString> file_list = inputs->GetFileList(i);
+            inputs->GetFileList(i);
             // check to make sure we found some analysis files
-            if (file_list.size() != 0){
+            if (inputs->GetNumberOfSubruns() != 0) {
                 MakeHistograms *hist_maker = new MakeHistograms(inputs);
-                hist_maker->MakeCalibrationHistograms(cal_file);
+                TH2F* hist = hist_maker->MakeCalibrationHistogram(cal_file);
+                out->cd();
+                hist->Write();
+
+                // cleaning up
                 delete hist_maker;
+                delete hist;
             }
             inputs->ClearFileList();
         }
+
+        std::cout << "Histograms written to: " << out->GetName() << std::endl;
+        out->Close();
+        // cleaning up
         delete inputs;
     }
 

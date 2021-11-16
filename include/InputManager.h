@@ -8,16 +8,16 @@ class InputManager
 public:
     InputManager(const char * hist_dir, const char * out_file = "out.root");
     ~InputManager(void);
-    std::vector<TString> GetFileList(int run_number);
+    void GetFileList(int run_number);
     void ClearFileList();
     Int_t GetRunNumber();
+    Int_t GetNumberOfSubruns();
 
     std::vector<TString> file_list;
     const char * data_dir;
-    const char * out_file;
+    Int_t run_num;
 
 private:
-    int run_number;
 
 };
 

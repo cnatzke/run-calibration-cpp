@@ -29,7 +29,7 @@ MakeHistograms::~MakeHistograms()
 //////////////////////////////////////////////////////////////////////////////////
 //
 //////////////////////////////////////////////////////////////////////////////////
-void MakeHistograms::MakeCalibrationHistograms(const char* cal_file)
+TH2F* MakeHistograms::MakeCalibrationHistogram(const char* cal_file)
 {
     TChain *analysis = new TChain("AnalysisTree");
     std::vector<TString> run_list = inputs->file_list;
@@ -52,12 +52,9 @@ void MakeHistograms::MakeCalibrationHistograms(const char* cal_file)
 
     // Create histograms
     char hname[20];
-    for(int i = 0; i < num_crystals; i++) {
-        sprintf(hname,"run%i_%i", inputs->GetRunNumber(), i);
-        histograms[i] = new TH1F(hname, hname, 4000, 0, 4000);
-    }
-
-    //std::cout << "Histograms created." << std::endl;
+    sprintf(hname,"run_%i", inputs->GetRunNumber());
+    TH2F * hist = new TH2F(hname, hname, 66, 0, 66, 4000, 0, 4000);
+    std::cout << "Created charge vs channel histogram for run " << inputs->GetRunNumber() << std::endl;
 
     //filling histograms with data from analysis root file
     Int_t num_entries = analysis->GetEntries();
@@ -68,13 +65,15 @@ void MakeHistograms::MakeCalibrationHistograms(const char* cal_file)
     for (int i = 0; i < num_entries - 1; i++) {
         analysis->GetEntry(i);
         for (int j = 0; j < griffin->GetMultiplicity(); j++) {
-            TGriffinHit *griffin_hit = griffin->GetGriffinHit(j);
-            histograms[griffin_hit->GetArrayNumber()-1]->Fill(griffin_hit->GetCharge());
+            TGriffinHit *grif_hit = griffin->GetGriffinHit(j);
+            hist->Fill(grif_hit->GetArrayNumber() - 1, grif_hit->GetCharge());
         }
 
         if (i % 10000 == 0) progress_bar.display();
         ++progress_bar;
     }
     progress_bar.done();
+
+    return hist;
 
 } // end MakeCalibrationHistograms
