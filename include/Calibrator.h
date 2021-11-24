@@ -2,6 +2,7 @@
 #define CALIBRATOR_H
 
 #include "TFile.h"
+#include "TF1.h"
 
 class Calibrator
 {
@@ -11,12 +12,18 @@ public:
     void Calibrate(std::string type = "quadratic");
 
 private:
-    std::vector<float> GetCentroids(int channel, TH2F* h, std::vector<float> peak_energy);
+    void GetCentroids(int channel, TH2F* h, std::vector<float> peak_energy);
+    void FindCalibrationParameters(int channel, TF1* cal_fit, std::vector<float> peak_energy, std::vector<float> peak_energy_error);
 
     TFile * hist_file = NULL;
     double linear_gains[64] = {0};
     double linear_offsets[64] = {0};
-    int num_channels = 64;
+    int num_channels;
+    TF1 *cal_fit;
+    std::vector<float> centroids;
+    std::vector<float> centroids_error;
+    std::vector<float> cal_parameters;
+    std::vector<float> cal_residuals;
 
 
 };
