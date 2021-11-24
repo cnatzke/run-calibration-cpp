@@ -39,8 +39,8 @@ TH2F* MakeHistograms::MakeCalibrationHistogram(const char* cal_file)
         analysis->AddFile(Form("%s/%s", inputs->data_dir, run_list.at(i).Data()));
     }
 
+    std::cout << "Processing run:  " << inputs->GetRunNumber() << std::endl;
     std::cout << "Found " << analysis->GetNtrees() << " analysis trees" << std::endl;
-    TTree *tree = (TTree *) analysis->GetTree();
 
     TGriffin * griffin = 0;
     if (analysis->FindBranch("TGriffin")) {
@@ -54,7 +54,6 @@ TH2F* MakeHistograms::MakeCalibrationHistogram(const char* cal_file)
     char hname[20];
     sprintf(hname,"run_%i", inputs->GetRunNumber());
     TH2F * hist = new TH2F(hname, hname, 66, 0, 66, 4000, 0, 4000);
-    std::cout << "Created charge vs channel histogram for run " << inputs->GetRunNumber() << std::endl;
 
     //filling histograms with data from analysis root file
     Int_t num_entries = analysis->GetEntries();

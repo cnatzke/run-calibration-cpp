@@ -16,6 +16,7 @@
 #include "EnergyCalibration.h"
 #include "InputManager.h"
 #include "MakeHistograms.h"
+#include "Calibrator.h"
 
 int main(int argc, char **argv)
 {
@@ -24,8 +25,9 @@ int main(int argc, char **argv)
         return 0;
     }
     else if (argc == 2) {
-        //const char *data_dir = "/vagrant/data/histograms/pre-src-calibration/runs";
-        std::cout << "Here" << std::endl;
+        std::cout << "Calibrating channels" << std::endl;
+        Calibrator *cal = new Calibrator(argv[1]);
+        cal->Calibrate();
 
     }
     else if (argc == 3) {
