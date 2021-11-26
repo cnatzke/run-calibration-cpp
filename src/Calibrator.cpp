@@ -11,6 +11,7 @@
 #include "TH2.h"
 #include "TF1.h"
 #include "TGraphErrors.h"
+#include "TSystem.h"
 
 #include "Calibrator.h"
 
@@ -55,8 +56,10 @@ Calibrator::~Calibrator(void)
 void Calibrator::Calibrate(std::string type)
 {
 
-    std::vector<float> peak_energy = {511.0, 1460.82, 2103.511, 2614.511};
-    std::vector<float> peak_energy_error = {0.0, 0.005, 0.01, 0.01};
+    std::vector<float> peak_energy = {511.0, 1460.82, 2614.511};
+    std::vector<float> peak_energy_error = {0.0, 0.005, 0.01};
+    std::ofstream param_file("cal_parameters.csv");
+    param_file << "channel|linear|scalar" << std::endl;
 
     TList* list = hist_file->GetListOfKeys();
     if (!list) { printf("<E> No keys found in file\n"); exit(1); }
@@ -73,6 +76,7 @@ void Calibrator::Calibrate(std::string type)
                    "will not be converted\n", obj->GetName());
         }
         else {
+            TFile * out_file = new TFile(Form("run-fits/%s_fits.root", obj->GetName()), "RECREATE");
             for (int i = 0; i < num_channels; i++) {
                 // check for bad channels
                 if ((linear_offsets[i] == -1) && (linear_gains[i] == -1)) {
@@ -80,7 +84,7 @@ void Calibrator::Calibrate(std::string type)
                     continue;
                 }
 
-                GetCentroids(i, dynamic_cast<TH2F*>(obj), peak_energy);
+                GetCentroids(i, dynamic_cast<TH2F*>(obj), peak_energy, out_file);
 
                 if (type.compare("linear") == 0) {
                     cal_fit = new TF1("cal_fit", "[0] + [1]*x");
@@ -91,14 +95,16 @@ void Calibrator::Calibrate(std::string type)
                     std::exit(1);
                 }
 
-                FindCalibrationParameters(i, cal_fit, peak_energy, peak_energy_error);
+                FindCalibrationParameters(i, cal_fit, peak_energy, peak_energy_error, out_file, param_file);
 
 
                 centroids.clear();
                 centroids_error.clear();
             }
+            out_file->Close();
         }
     }
+    param_file.close();
 
 
 } // end Calibrate
@@ -106,8 +112,9 @@ void Calibrator::Calibrate(std::string type)
 //////////////////////////////////////////////////////////////////////////////////
 // Fits centroids for each channel
 //////////////////////////////////////////////////////////////////////////////////
-void Calibrator::GetCentroids(int channel, TH2F* h, std::vector<float> peak_energy)
+void Calibrator::GetCentroids(int channel, TH2F* h, std::vector<float> peak_energy, TFile *out_file)
 {
+    out_file->cd();
     TH1F * p = (TH1F*) h->ProjectionY("p", channel + 1, channel + 1);
     for (int j = 0; j < (int)peak_energy.size(); j++) {
         int min_bin = p->GetXaxis()->GetFirst();
@@ -140,40 +147,48 @@ void Calibrator::GetCentroids(int channel, TH2F* h, std::vector<float> peak_ener
         //std::cout << "Graph|" << channel << "|Peak|" << peak_energy.at(j) << "|Guess|" << x_guess << "|Fitted|" << fit->GetParameter(1) << "|RCS|" << fit->GetChisquare()/fit->GetNDF() << std::endl;
 
     }             // end peak loop
+    p->Write(Form("channel_%i", channel));
     delete p;
 } // end GetCentroids
 
 //////////////////////////////////////////////////////////////////////////////////
 // Fits centroids and finds calibration parameters for each channel
 //////////////////////////////////////////////////////////////////////////////////
-void Calibrator::FindCalibrationParameters(int channel, TF1* cal_fit, std::vector<float> peak_energy, std::vector<float> peak_energy_error)
+void Calibrator::FindCalibrationParameters(int channel, TF1* cal_fit, std::vector<float> peak_energy, std::vector<float> peak_energy_error, TFile * out_file, std::ofstream &param_file)
 {
+    out_file->cd();
     //creating graph of centroids vs energy
-    TGraphErrors *gr = new TGraphErrors((int)peak_energy.size(), &centroids[0], &peak_energy[0], &centroids_error[0], &peak_energy_error[0]);
+    TGraphErrors *gr = new TGraphErrors((int)peak_energy.size(), &peak_energy[0], &centroids[0], &peak_energy_error[0], &centroids_error[0]);
     gr->SetName(Form("cal_fit_%i", channel));
-    gr->Draw("AP");
+    gr->SetTitle(";Energy [keV];Centroid [arb.]");
 
-    //fitting quadratic on data points
+    //fitting calibration on data points
     gr->Fit(cal_fit, "Q");
 
-    std::cout << "Fit Params: " << cal_fit->GetParameter(2) << " | " << cal_fit->GetParameter(1) << " | "
-<< cal_fit->GetParameter(0) << std::endl;
+    // find Residuals
+    std::vector<float> residuals;
+    for (int j = 0; j < (int)peak_energy.size(); j++) {
+        residuals.push_back(centroids.at(j) - cal_fit->Eval(peak_energy.at(j)));
+    }
+    TGraph *resid_g = new TGraph((int)peak_energy.size(), &peak_energy[0], &residuals[0]);
+    resid_g->SetName(Form("residuals_%i", channel));
+    resid_g->SetTitle(";peak energy;residuals");
+
+    //std::cout << "Fit Params: " << cal_fit->GetParameter(1) << " | "
+    //std::cout << "Fit Params: " << cal_fit->GetParameter(2) << " | " << cal_fit->GetParameter(1) << " | "
+    //<< cal_fit->GetParameter(0) << std::endl;
+
+    gr->Write(Form("fit_%i", channel));
+    resid_g->Write(Form("residuals_%i", channel));
+
+    // write parameters to file
+    param_file << channel << "|" << cal_fit->GetParameter(1) << "|" << cal_fit->GetParameter(0) << std::endl;
 
     delete gr;
+    delete resid_g;
     /*
-    quadratic[i] = coeffFit->GetParameter(2);
-    gains[i] = coeffFit->GetParameter(1);
-    offsets[i] = coeffFit->GetParameter(0);
-
-    double x[num_peaks_used];
-    double resid[num_peaks_used];
-    for (int j = 0; j < num_peaks_used; j++) {
-        x[j] = j;
-        resid[j] = energy[j] - coeffFit->Eval(centroids[i][j]);
-    }    //for
-
-    TGraph *resid_g = new TGraph(num_peaks_used, x, resid);
-    resid_g->SetName(Form("Fit Residuals - %i", i));
-    list->Add(resid_g);
-    */
+       quadratic[i] = coeffFit->GetParameter(2);
+       gains[i] = coeffFit->GetParameter(1);
+       offsets[i] = coeffFit->GetParameter(0);
+     */
 } // end FindCalibrationParameters

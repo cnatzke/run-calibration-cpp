@@ -9,11 +9,11 @@ class Calibrator
 public:
     Calibrator(const char * filename, const char * coeff_file = "lin_energy_coeff.txt");
     ~Calibrator(void);
-    void Calibrate(std::string type = "quadratic");
+    void Calibrate(std::string type = "linear");
 
 private:
-    void GetCentroids(int channel, TH2F* h, std::vector<float> peak_energy);
-    void FindCalibrationParameters(int channel, TF1* cal_fit, std::vector<float> peak_energy, std::vector<float> peak_energy_error);
+    void GetCentroids(int channel, TH2F* h, std::vector<float> peak_energy, TFile * out_file);
+    void FindCalibrationParameters(int channel, TF1* cal_fit, std::vector<float> peak_energy, std::vector<float> peak_energy_error, TFile * out_file, std::ofstream &param_file);
 
     TFile * hist_file = NULL;
     double linear_gains[64] = {0};
