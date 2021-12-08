@@ -83,12 +83,12 @@ void InitGRSISort(){
  *****************************************************************************/
 void PrintUsage(char* argv[]){
     std::cerr << argv[0] << " Version: " << EnergyCalibration_VERSION_MAJOR << "." << EnergyCalibration_VERSION_MINOR << "\n"
-              << "\n----- Background Subtractions ------\n"
-              << "usage: " << argv[0] << " source_file background_file \n"
-              << " source_file: Source histograms\n"
-              << " background_file: Background histograms\n"
               << "\n----- Matrix Creation ------\n"
+              << "usage: " << argv[0] << " first_run last_run \n"
+              << " first_run: Run number of first run in range\n"
+              << " last_run: Run number of last run in range\n"
+              << "\n----- Fitting ------\n"
               << "usage: " << argv[0] << " histogram_file\n"
-              << " histogram_file: ROOT file containing background subtracted histograms\n"
+              << " histogram_file: ROOT file containing charge histograms\n"
               << std::endl;
 } // end PrintUsage

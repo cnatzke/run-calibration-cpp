@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 Calibrator::Calibrator(const char * filename, const char * coeff_file)
 {
-    hist_file = new TFile(filename);
+    hist_file = new TFile(filename, "UPDATE");
     num_channels = 64;
 
     // read in linear calibration for rough peak positions
@@ -58,8 +58,6 @@ void Calibrator::Calibrate(std::string type)
 
     std::vector<float> peak_energy = {511.0, 1460.82, 2614.511};
     std::vector<float> peak_energy_error = {0.0, 0.005, 0.01};
-    std::ofstream param_file("cal_parameters.csv");
-    param_file << "channel|linear|scalar" << std::endl;
 
     TList* list = hist_file->GetListOfKeys();
     if (!list) { printf("<E> No keys found in file\n"); exit(1); }
@@ -77,10 +75,16 @@ void Calibrator::Calibrate(std::string type)
         }
         else {
             TFile * out_file = new TFile(Form("run-fits/%s_fits.root", obj->GetName()), "RECREATE");
+            // open file to write parameters to
+            std::ofstream param_file(Form("cal-parameters/%s_cal_parameters.csv", obj->GetName()));
+            param_file << "channel|linear|scalar" << std::endl;
+
             for (int i = 0; i < num_channels; i++) {
                 // check for bad channels
                 if ((linear_offsets[i] == -1) && (linear_gains[i] == -1)) {
-                    std::cout << "Channel " << i << " missing valid linear calibration, skipping..." << std::endl;
+                    // should I enable output for missing channels? not sure, will revist if needed 
+                    //std::cout << "Channel " << i << " missing valid linear calibration, skipping..." << std::endl;
+                    param_file << i << "|1.0|0.0" << std::endl;
                     continue;
                 }
 
@@ -102,9 +106,9 @@ void Calibrator::Calibrate(std::string type)
                 centroids_error.clear();
             }
             out_file->Close();
+            param_file.close();
         }
     }
-    param_file.close();
 
 
 } // end Calibrate
