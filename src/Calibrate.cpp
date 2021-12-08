@@ -83,11 +83,13 @@ void InitGRSISort(){
  *****************************************************************************/
 void PrintUsage(char* argv[]){
     std::cerr << argv[0] << " Version: " << EnergyCalibration_VERSION_MAJOR << "." << EnergyCalibration_VERSION_MINOR << "\n"
+              << "\n----- Basics ------\n"
+              << "This program requires a file called 'lin_energy_coeff.txt' that details a basic linear calibration. This should be an output from the initial energy calibration procedure. The fitting and calibration step requires two directories 'run-fits' and 'cal-parameters' to be initialized and available. I could not figure out an easy way to get the program to do this automatically so some user input is required\n"
               << "\n----- Matrix Creation ------\n"
               << "usage: " << argv[0] << " first_run last_run \n"
               << " first_run: Run number of first run in range\n"
               << " last_run: Run number of last run in range\n"
-              << "\n----- Fitting ------\n"
+              << "\n----- Fitting and Calibration------\n"
               << "usage: " << argv[0] << " histogram_file\n"
               << " histogram_file: ROOT file containing charge histograms\n"
               << std::endl;

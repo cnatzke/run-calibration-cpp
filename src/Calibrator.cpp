@@ -76,14 +76,16 @@ void Calibrator::Calibrate(std::string type)
         else {
             TFile * out_file = new TFile(Form("run-fits/%s_fits.root", obj->GetName()), "RECREATE");
             // open file to write parameters to
-            std::ofstream param_file(Form("cal-parameters/%s_cal_parameters.csv", obj->GetName()));
+            std::ofstream param_file(Form("cal-parameters/%s.csv", obj->GetName()));
             param_file << "channel|linear|scalar" << std::endl;
-
+            // parameter vectors
             for (int i = 0; i < num_channels; i++) {
                 // check for bad channels
                 if ((linear_offsets[i] == -1) && (linear_gains[i] == -1)) {
-                    // should I enable output for missing channels? not sure, will revist if needed 
+                    // should I enable output for missing channels? not sure, will revist if needed
                     //std::cout << "Channel " << i << " missing valid linear calibration, skipping..." << std::endl;
+                    linear_params_vec.push_back(1.0);
+                    offset_params_vec.push_back(0.0);
                     param_file << i << "|1.0|0.0" << std::endl;
                     continue;
                 }
@@ -105,8 +107,26 @@ void Calibrator::Calibrate(std::string type)
                 centroids.clear();
                 centroids_error.clear();
             }
+            // writing calibration parameters to file for TRIUMF code
+            std::ofstream param_header_file(Form("cal-parameters/%s.txt", obj->GetName()));
+            param_header_file << "float linear[" << num_channels << "] = {" << linear_params_vec.at(0);
+            for (int i = 1; i < (int)linear_params_vec.size(); i++) {
+                param_header_file << "," << linear_params_vec.at(i);
+            }
+            param_header_file << "};" << std::endl;
+            param_header_file << "float scalar[" << num_channels << "] = {" << offset_params_vec.at(0);
+            for (int i = 1; i < (int)offset_params_vec.size(); i++) {
+                param_header_file << "," << offset_params_vec.at(i);
+            }//for
+            param_header_file << "};" << std::endl;
+
+            linear_params_vec.clear();
+            offset_params_vec.clear();
+
+            // closing output files
             out_file->Close();
             param_file.close();
+            param_header_file.close();
         }
     }
 
@@ -185,14 +205,12 @@ void Calibrator::FindCalibrationParameters(int channel, TF1* cal_fit, std::vecto
     gr->Write(Form("fit_%i", channel));
     resid_g->Write(Form("residuals_%i", channel));
 
+    linear_params_vec.push_back(cal_fit->GetParameter(1));
+    offset_params_vec.push_back(cal_fit->GetParameter(0));
+
     // write parameters to file
     param_file << channel << "|" << cal_fit->GetParameter(1) << "|" << cal_fit->GetParameter(0) << std::endl;
 
     delete gr;
     delete resid_g;
-    /*
-       quadratic[i] = coeffFit->GetParameter(2);
-       gains[i] = coeffFit->GetParameter(1);
-       offsets[i] = coeffFit->GetParameter(0);
-     */
 } // end FindCalibrationParameters

@@ -24,6 +24,8 @@ private:
     std::vector<float> centroids_error;
     std::vector<float> cal_parameters;
     std::vector<float> cal_residuals;
+    std::vector<float> linear_params_vec;
+    std::vector<float> offset_params_vec;
 
 
 };
