@@ -65,6 +65,7 @@ void Calibrator::Calibrate(std::string type)
     TKey* key;
     TObject* obj;
 
+    std::cout << "Finding linear calibration parameters, please wait ..." << std::endl;
     // loop through all histograms in file
     while ( (key = (TKey*)next()) ) {
         obj = key->ReadObj();
@@ -103,22 +104,9 @@ void Calibrator::Calibrate(std::string type)
 
                 FindCalibrationParameters(i, cal_fit, peak_energy, peak_energy_error, out_file, param_file);
 
-
                 centroids.clear();
                 centroids_error.clear();
             }
-            // writing calibration parameters to file for TRIUMF code
-            std::ofstream param_header_file(Form("cal-parameters/%s.txt", obj->GetName()));
-            param_header_file << "float linear[" << num_channels << "] = {" << linear_params_vec.at(0);
-            for (int i = 1; i < (int)linear_params_vec.size(); i++) {
-                param_header_file << "," << linear_params_vec.at(i);
-            }
-            param_header_file << "};" << std::endl;
-            param_header_file << "float scalar[" << num_channels << "] = {" << offset_params_vec.at(0);
-            for (int i = 1; i < (int)offset_params_vec.size(); i++) {
-                param_header_file << "," << offset_params_vec.at(i);
-            }//for
-            param_header_file << "};" << std::endl;
 
             linear_params_vec.clear();
             offset_params_vec.clear();
@@ -126,7 +114,6 @@ void Calibrator::Calibrate(std::string type)
             // closing output files
             out_file->Close();
             param_file.close();
-            param_header_file.close();
         }
     }
 
@@ -182,9 +169,9 @@ void Calibrator::FindCalibrationParameters(int channel, TF1* cal_fit, std::vecto
 {
     out_file->cd();
     //creating graph of centroids vs energy
-    TGraphErrors *gr = new TGraphErrors((int)peak_energy.size(), &peak_energy[0], &centroids[0], &peak_energy_error[0], &centroids_error[0]);
+    TGraphErrors *gr = new TGraphErrors((int)peak_energy.size(), &centroids[0], &peak_energy[0], &centroids_error[0], &peak_energy_error[0]);
     gr->SetName(Form("cal_fit_%i", channel));
-    gr->SetTitle(";Energy [keV];Centroid [arb.]");
+    gr->SetTitle(";Centroid [arb.]; Energy [keV]");
 
     //fitting calibration on data points
     gr->Fit(cal_fit, "Q");
@@ -192,11 +179,11 @@ void Calibrator::FindCalibrationParameters(int channel, TF1* cal_fit, std::vecto
     // find Residuals
     std::vector<float> residuals;
     for (int j = 0; j < (int)peak_energy.size(); j++) {
-        residuals.push_back(centroids.at(j) - cal_fit->Eval(peak_energy.at(j)));
+        residuals.push_back(peak_energy.at(j) - cal_fit->Eval(centroids.at(j)));
     }
-    TGraph *resid_g = new TGraph((int)peak_energy.size(), &peak_energy[0], &residuals[0]);
+    TGraph *resid_g = new TGraph((int)centroids.size(), &centroids[0], &residuals[0]);
     resid_g->SetName(Form("residuals_%i", channel));
-    resid_g->SetTitle(";peak energy;residuals");
+    resid_g->SetTitle(";charge peak centroid;residuals");
 
     //std::cout << "Fit Params: " << cal_fit->GetParameter(1) << " | "
     //std::cout << "Fit Params: " << cal_fit->GetParameter(2) << " | " << cal_fit->GetParameter(1) << " | "
