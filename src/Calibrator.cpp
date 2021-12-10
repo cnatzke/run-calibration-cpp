@@ -57,7 +57,7 @@ void Calibrator::Calibrate(std::string type)
 {
 
     std::vector<float> peak_energy = {511.0, 1460.82, 2614.511};
-    std::vector<float> peak_energy_error = {0.0, 0.005, 0.01};
+    std::vector<float> peak_energy_error = {0.001, 0.005, 0.01};
 
     TList* list = hist_file->GetListOfKeys();
     if (!list) { printf("<E> No keys found in file\n"); exit(1); }
@@ -169,7 +169,7 @@ void Calibrator::FindCalibrationParameters(int channel, TF1* cal_fit, std::vecto
 {
     out_file->cd();
     //creating graph of centroids vs energy
-    TGraphErrors *gr = new TGraphErrors((int)peak_energy.size(), &centroids[0], &peak_energy[0], &centroids_error[0], &peak_energy_error[0]);
+    TGraphErrors *gr = new TGraphErrors((int)centroids.size(), &centroids[0], &peak_energy[0], &centroids_error[0], &peak_energy_error[0]);
     gr->SetName(Form("cal_fit_%i", channel));
     gr->SetTitle(";Centroid [arb.]; Energy [keV]");
 
